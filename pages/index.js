@@ -260,62 +260,7 @@ function Carousel({ photos, idx, isUnlocked, getUrl, onSlide, onUnlock, price })
       )}
     </div>
   )
-}          {idx > 0 && (
-            <button onClick={() => onSlide(idx - 1)} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.85)', border: 'none', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#080808', zIndex: 5 }}>‹</button>
-          )}
-          {idx < photos.length - 1 && (
-            <button onClick={() => onSlide(idx + 1)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.85)', border: 'none', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#080808', zIndex: 5 }}>›</button>
-          )}
-          <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '4px', zIndex: 5 }}>
-            {photos.map((_, i) => (
-              <div key={i} style={{ width: '5px', height: '5px', borderRadius: '50%', background: i === idx ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'background 0.2s' }} />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}            ) : (
-              profile.name[0]
-            )}
-          </div>
-          <h1 className="name">{profile.name}</h1>
-          <p className="bio">{profile.bio}</p>
-          <div className="profile-actions">
-            <button className="btn-sub">Subscribe</button>
-          </div>
-        </div>
-
-        <div className="posts-label">
-          <span>{posts.length} posts</span>
-        </div>
-
-        {loading ? (
-          <div className="loading"><div className="spinner" /></div>
-        ) : posts.length === 0 ? (
-          <div className="empty">Aucun post pour l'instant</div>
-        ) : (
-          <div className="posts">
-            {posts.map(post => {
-              const idx = carouselIndex[post.id] || 0
-              const isUnlocked = unlocked[post.id]
-              const photos = post.photos || []
-              return (
-                <div key={post.id} className="post">
-                  <div className="post-header">
-                    <div className="post-avatar">
-                      {avatarUrl ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : profile.name[0]}
-                    </div>
-                    <span className="post-username">{profile.name}</span>
-                  </div>
-                  <div className="carousel">
-                    {photos.length === 0 ? (
-                      <div className="no-photo">Aucune photo</div>
-                    ) : (
-                      <>
-                        <div className="slides-container">
-                          {photos.map((photo, i) => {
-                            const shouldBlur = photo.is_locked && !isUnlocked
+}                            const shouldBlur = photo.is_locked && !isUnlocked
                             return (
                               <div key={photo.id} className="slide" style={{ transform: `translateX(${(i - idx) * 100}%)` }}>
                                 <img src={getUrl(photo.url)} alt="" className={shouldBlur ? 'blurred' : ''} />
