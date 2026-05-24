@@ -214,7 +214,7 @@ function Carousel({ photos, idx, isUnlocked, getUrl, onSlide, onUnlock, price })
             <img
               src={getUrl(photo.url)}
               alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover", filter: shouldBlur ? "blur(12px)" : "none", transform: shouldBlur ? "scale(1.03)" : "none" }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", filter: shouldBlur ? "blur(14px)" : "none", transform: shouldBlur ? "scale(1.03)" : "none" }}
             />
             {shouldBlur && (
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.15)" }}>
