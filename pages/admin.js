@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import Head from 'next/head'
 
@@ -16,6 +16,7 @@ export default function Admin() {
   const [savingProfile, setSavingProfile] = useState(false)
   const [avatarFile, setAvatarFile] = useState(null)
   const [bannerFile, setBannerFile] = useState(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => { if (auth) { fetchPosts(); fetchProfile() } }, [auth])
 
@@ -41,7 +42,6 @@ export default function Admin() {
     e.preventDefault()
     setSavingProfile(true)
     let updates = { name: profile.name, bio: profile.bio }
-
     if (avatarFile) {
       const fileName = `avatar_${Date.now()}_${avatarFile.name}`
       await supabase.storage.from('photos').upload(fileName, avatarFile)
@@ -52,13 +52,22 @@ export default function Admin() {
       await supabase.storage.from('photos').upload(fileName, bannerFile)
       updates.banner_url = fileName
     }
-
     await supabase.from('profile').update(updates).eq('id', 1)
     await fetchProfile()
     setAvatarFile(null)
     setBannerFile(null)
     setSavingProfile(false)
     alert('Profil sauvegardé !')
+  }
+
+  function addFile(e) {
+    const file = e.target.files[0]
+    if (file) setUploadFiles(prev => [...prev, file])
+    e.target.value = ''
+  }
+
+  function removeFile(index) {
+    setUploadFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   async function createPost(e) {
@@ -102,7 +111,10 @@ export default function Admin() {
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${url}`
   }
 
-  const s = { input: { width: '100%', padding: '12px', background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: '10px', color: '#fff', fontSize: '14px', marginBottom: '16px', outline: 'none' }, label: { fontSize: '12px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: '8px' } }
+  const s = {
+    input: { width: '100%', padding: '12px', background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: '10px', color: '#fff', fontSize: '14px', marginBottom: '16px', outline: 'none' },
+    label: { fontSize: '12px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }
+  }
 
   if (!auth) return (
     <>
@@ -128,7 +140,7 @@ export default function Admin() {
 
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
           {['posts', 'nouveau', 'profil'].map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: '8px 18px', background: tab === t ? '#fff' : 'transparent', color: tab === t ? '#080808' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (tab === t ? '#fff' : 'rgba(255,255,255,0.15)'), borderRadius: '50px', fontSize: '13px', cursor: 'pointer', textTransform: 'capitalize' }}>
+            <button key={t} onClick={() => setTab(t)} style={{ padding: '8px 18px', background: tab === t ? '#fff' : 'transparent', color: tab === t ? '#080808' : 'rgba(255,255,255,0.5)', border: '1px solid ' + (tab === t ? '#fff' : 'rgba(255,255,255,0.15)'), borderRadius: '50px', fontSize: '13px', cursor: 'pointer' }}>
               {t === 'nouveau' ? '+ Nouveau post' : t === 'profil' ? '👤 Profil' : 'Mes posts'}
             </button>
           ))}
@@ -137,21 +149,16 @@ export default function Admin() {
         {tab === 'profil' && (
           <form onSubmit={saveProfile} style={{ background: '#141414', borderRadius: '16px', padding: '20px' }}>
             <h2 style={{ fontSize: '16px', marginBottom: '20px', fontWeight: '400', color: 'rgba(255,255,255,0.7)' }}>Mon profil</h2>
-
             <label style={s.label}>Nom</label>
             <input value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })} style={s.input} />
-
             <label style={s.label}>Bio</label>
             <textarea value={profile.bio} onChange={e => setProfile({ ...profile, bio: e.target.value })} rows={3} style={{ ...s.input, resize: 'vertical' }} />
-
             <label style={s.label}>Photo de profil</label>
             {profile.avatar_url && <img src={getUrl(profile.avatar_url)} alt="" style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', marginBottom: '8px', display: 'block' }} />}
             <input type="file" accept="image/*" onChange={e => setAvatarFile(e.target.files[0])} style={{ ...s.input, cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }} />
-
             <label style={s.label}>Bannière</label>
             {profile.banner_url && <img src={getUrl(profile.banner_url)} alt="" style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px' }} />}
             <input type="file" accept="image/*" onChange={e => setBannerFile(e.target.files[0])} style={{ ...s.input, cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }} />
-
             <button type="submit" disabled={savingProfile} style={{ width: '100%', padding: '14px', background: savingProfile ? '#333' : '#fff', color: savingProfile ? 'rgba(255,255,255,0.4)' : '#080808', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '500', cursor: savingProfile ? 'not-allowed' : 'pointer' }}>
               {savingProfile ? 'Sauvegarde...' : 'Sauvegarder le profil'}
             </button>
@@ -165,9 +172,25 @@ export default function Admin() {
             <input value={newCaption} onChange={e => setNewCaption(e.target.value)} placeholder="Description du post..." style={s.input} />
             <label style={s.label}>Prix pour débloquer (€)</label>
             <input type="number" value={newPrice} onChange={e => setNewPrice(Number(e.target.value))} min="1" style={s.input} />
-            <label style={s.label}>Photos (la 1ère est gratuite, les suivantes sont floutées)</label>
-            <input type="file" multiple accept="image/*" onChange={e => setUploadFiles(Array.from(e.target.files))} style={{ ...s.input, cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }} />
-            {uploadFiles.length > 0 && <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginBottom: '16px' }}>{uploadFiles.length} photo(s) — photo 1 visible, reste flouté</p>}
+            
+            <label style={s.label}>Photos</label>
+            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginBottom: '12px' }}>Photo 1 = visible · Photos suivantes = floutées</p>
+            
+            {uploadFiles.map((file, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#1e1e1e', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px' }}>
+                <img src={URL.createObjectURL(file)} alt="" style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
+                <span style={{ flex: 1, fontSize: '13px', color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Photo {i + 1} {i === 0 ? '✅ visible' : '🔒 floutée'}
+                </span>
+                <button type="button" onClick={() => removeFile(i)} style={{ background: 'rgba(255,50,50,0.2)', color: '#ff6b6b', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}>✕</button>
+              </div>
+            ))}
+
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={addFile} style={{ display: 'none' }} />
+            <button type="button" onClick={() => fileInputRef.current.click()} style={{ width: '100%', padding: '12px', background: 'transparent', color: 'rgba(255,255,255,0.5)', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: '10px', fontSize: '14px', cursor: 'pointer', marginBottom: '16px' }}>
+              + Ajouter une photo
+            </button>
+
             <button type="submit" disabled={uploading} style={{ width: '100%', padding: '14px', background: uploading ? '#333' : '#fff', color: uploading ? 'rgba(255,255,255,0.4)' : '#080808', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '500', cursor: uploading ? 'not-allowed' : 'pointer' }}>
               {uploading ? 'Upload en cours...' : 'Publier le post'}
             </button>
