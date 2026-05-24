@@ -43,13 +43,6 @@ export default function Home() {
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${url}`
   }
 
-  function goTo(postId, next, post) {
-    const isUnlocked = unlocked[postId]
-    const photo = post.photos[next]
-    if (photo?.is_locked && !isUnlocked) { setModal(post); return }
-    setCarouselIndex(prev => ({ ...prev, [postId]: next }))
-  }
-
   async function handleUnlock() {
     if (!modal || paying) return
     setPaying(true)
@@ -73,7 +66,6 @@ export default function Home() {
         const newUnlocked = { ...JSON.parse(localStorage.getItem('unlocked_posts') || '{}'), [postId]: true }
         localStorage.setItem('unlocked_posts', JSON.stringify(newUnlocked))
         setUnlocked(newUnlocked)
-        setCarouselIndex(prev => ({ ...prev, [postId]: 1 }))
       }
       window.history.replaceState({}, '', '/')
     }
@@ -102,7 +94,6 @@ export default function Home() {
           </div>
           <h1 className="name">{profile.name}</h1>
           <p className="bio">{profile.bio}</p>
-          <button className="btn-sub">Subscribe</button>
         </div>
 
         <div className="posts-label"><span>{posts.length} posts</span></div>
@@ -131,7 +122,7 @@ export default function Home() {
                     idx={idx}
                     isUnlocked={isUnlocked}
                     getUrl={getUrl}
-                    onSlide={(next) => goTo(post.id, next, post)}
+                    onSlide={(next) => setCarouselIndex(prev => ({ ...prev, [post.id]: next }))}
                     onUnlock={() => setModal(post)}
                     price={post.price}
                   />
@@ -172,7 +163,6 @@ export default function Home() {
         .avatar { width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, #c850c0, #4158d0); border: 3px solid #080808; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; margin-bottom: 14px; overflow: hidden; }
         .name { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; margin-bottom: 6px; }
         .bio { font-size: 14px; color: rgba(255,255,255,0.55); font-weight: 300; margin-bottom: 18px; white-space: pre-line; }
-        .btn-sub { width: 100%; padding: 13px; background: #fff; color: #080808; border: none; border-radius: 50px; font-size: 14px; font-weight: 500; cursor: pointer; }
         .posts-label { padding: 12px 20px; font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; border-top: 0.5px solid rgba(255,255,255,0.08); }
         .loading { display: flex; justify-content: center; padding: 60px; }
         .spinner { width: 28px; height: 28px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -215,33 +205,62 @@ function Carousel({ photos, idx, isUnlocked, getUrl, onSlide, onUnlock, price })
     touchEnd.current = null
   }
 
-  if (photos.length === 0) return <div style={{ aspectRatio: '4/5', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '13px' }}>Aucune photo</div>
+  if (photos.length === 0) return null
 
   return (
-    <div style={{ position: 'relative', width: '100%', aspectRatio: '4/5', background: '#111', overflow: 'hidden', userSelect: 'none' }}
-      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-      
-      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-        {photos.map((photo, i) => {
-          const shouldBlur = photo.is_locked && !isUnlocked
-          return (
-            <div key={photo.id} style={{ position: 'absolute', inset: 0, transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(${(i - idx) * 100}%)` }}>
-              <img src={getUrl(photo.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: shouldBlur ? 'blur(24px)' : 'none', transform: shouldBlur ? 'scale(1.08)' : 'none' }} />
-              {shouldBlur && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <button onClick={onUnlock} style={{ background: 'rgba(255,255,255,0.92)', color: '#080808', border: 'none', borderRadius: '50px', padding: '12px 22px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
-                    🔒 Unlock for €{price}
-                  </button>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+    <div
+      style={{ position: 'relative', width: '100%', aspectRatio: '4/5', background: '#111', overflow: 'hidden', userSelect: 'none', touchAction: 'pan-y' }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {photos.map((photo, i) => {
+        const shouldBlur = photo.is_locked && !isUnlocked
+        return (
+          <div key={photo.id} style={{ position: 'absolute', inset: 0, transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(${(i - idx) * 100}%)` }}>
+            <img
+              src={getUrl(photo.url)}
+              alt=""
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                filter: shouldBlur ? 'blur(8px)' : 'none',
+                transform: shouldBlur ? 'scale(1.03)' : 'none'
+              }}
+            />
+            {shouldBlur && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.15)' }}>
+                <button
+                  onClick={onUnlock}
+                  style={{ background: 'rgba(255,255,255,0.92)', color: '#080808', border: 'none', borderRadius: '50px', padding: '12px 22px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+                >
+                  🔒 Unlock for €{price}
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })}
 
       {photos.length > 1 && (
         <>
           {idx > 0 && (
+            <button onClick={() => onSlide(idx - 1)} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.85)', border: 'none', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#080808', zIndex: 5 }}>‹</button>
+          )}
+          {idx < photos.length - 1 && (
+            <button onClick={() => onSlide(idx + 1)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.85)', border: 'none', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#080808', zIndex: 5 }}>›</button>
+          )}
+          <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '4px', zIndex: 5 }}>
+            {photos.map((_, i) => (
+              <div key={i} style={{ width: '5px', height: '5px', borderRadius: '50%', background: i === idx ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'background 0.2s' }} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}          {idx > 0 && (
             <button onClick={() => onSlide(idx - 1)} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.85)', border: 'none', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#080808', zIndex: 5 }}>‹</button>
           )}
           {idx < photos.length - 1 && (
