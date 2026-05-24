@@ -4,6 +4,7 @@ import Head from 'next/head'
 
 export default function Home() {
   const [posts, setPosts] = useState([])
+  const [profile, setProfile] = useState({ name: 'Victoria Babolat', bio: 'Welcome to my exclusive content 💋', avatar_url: null, banner_url: null })
   const [carouselIndex, setCarouselIndex] = useState({})
   const [unlocked, setUnlocked] = useState({})
   const [modal, setModal] = useState(null)
@@ -12,16 +13,21 @@ export default function Home() {
 
   useEffect(() => {
     fetchPosts()
+    fetchProfile()
     const saved = JSON.parse(localStorage.getItem('unlocked_posts') || '{}')
     setUnlocked(saved)
   }, [])
+
+  async function fetchProfile() {
+    const { data } = await supabase.from('profile').select('*').single()
+    if (data) setProfile(data)
+  }
 
   async function fetchPosts() {
     const { data: postsData } = await supabase
       .from('posts')
       .select('*, photos(*)')
       .order('created_at', { ascending: false })
-
     if (postsData) {
       const sorted = postsData.map(p => ({
         ...p,
@@ -32,7 +38,8 @@ export default function Home() {
     setLoading(false)
   }
 
-  function getPhotoUrl(url) {
+  function getUrl(url) {
+    if (!url) return null
     if (url.startsWith('http')) return url
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${url}`
   }
@@ -80,24 +87,37 @@ export default function Home() {
     }
   }, [])
 
+  const avatarUrl = getUrl(profile.avatar_url)
+  const bannerUrl = getUrl(profile.banner_url)
+
   return (
     <>
       <Head>
-        <title>Victoria Babolat</title>
+        <title>{profile.name}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       </Head>
 
       <div className="app">
         <div className="hero">
-          <div className="hero-gradient" />
+          {bannerUrl ? (
+            <img src={bannerUrl} alt="banner" className="hero-img" />
+          ) : (
+            <div className="hero-gradient" />
+          )}
           <div className="hero-overlay" />
         </div>
 
         <div className="profile">
-          <div className="avatar">V</div>
-          <h1 className="name">Victoria Babolat</h1>
-          <p className="bio">Welcome to my exclusive content 💋</p>
+          <div className="avatar">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            ) : (
+              profile.name[0]
+            )}
+          </div>
+          <h1 className="name">{profile.name}</h1>
+          <p className="bio">{profile.bio}</p>
           <div className="profile-actions">
             <button className="btn-sub">Subscribe</button>
           </div>
@@ -108,9 +128,7 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div className="loading">
-            <div className="spinner" />
-          </div>
+          <div className="loading"><div className="spinner" /></div>
         ) : posts.length === 0 ? (
           <div className="empty">Aucun post pour l'instant</div>
         ) : (
@@ -119,14 +137,14 @@ export default function Home() {
               const idx = carouselIndex[post.id] || 0
               const isUnlocked = unlocked[post.id]
               const photos = post.photos || []
-
               return (
                 <div key={post.id} className="post">
                   <div className="post-header">
-                    <div className="post-avatar">V</div>
-                    <span className="post-username">Victoria Babolat</span>
+                    <div className="post-avatar">
+                      {avatarUrl ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : profile.name[0]}
+                    </div>
+                    <span className="post-username">{profile.name}</span>
                   </div>
-
                   <div className="carousel">
                     {photos.length === 0 ? (
                       <div className="no-photo">Aucune photo</div>
@@ -136,16 +154,8 @@ export default function Home() {
                           {photos.map((photo, i) => {
                             const shouldBlur = photo.is_locked && !isUnlocked
                             return (
-                              <div
-                                key={photo.id}
-                                className="slide"
-                                style={{ transform: `translateX(${(i - idx) * 100}%)` }}
-                              >
-                                <img
-                                  src={getPhotoUrl(photo.url)}
-                                  alt=""
-                                  className={shouldBlur ? 'blurred' : ''}
-                                />
+                              <div key={photo.id} className="slide" style={{ transform: `translateX(${(i - idx) * 100}%)` }}>
+                                <img src={getUrl(photo.url)} alt="" className={shouldBlur ? 'blurred' : ''} />
                                 {shouldBlur && (
                                   <div className="lock-overlay">
                                     <button className="btn-unlock" onClick={() => setModal(post)}>
@@ -157,22 +167,18 @@ export default function Home() {
                             )
                           })}
                         </div>
-
                         {photos.length > 1 && (
                           <>
                             <button className="nav-btn prev" onClick={() => slide(post.id, -1)}>‹</button>
                             <button className="nav-btn next" onClick={() => slide(post.id, 1)}>›</button>
                             <div className="dots">
-                              {photos.map((_, i) => (
-                                <div key={i} className={`dot ${i === idx ? 'active' : ''}`} />
-                              ))}
+                              {photos.map((_, i) => <div key={i} className={`dot ${i === idx ? 'active' : ''}`} />)}
                             </div>
                           </>
                         )}
                       </>
                     )}
                   </div>
-
                   <div className="post-footer">
                     <p className="caption">{post.caption}</p>
                   </div>
@@ -198,59 +204,43 @@ export default function Home() {
         )}
       </div>
 
-      <style jsx global>{`
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #080808; color: #fff; font-family: 'DM Sans', sans-serif; }
-      `}</style>
-
+      <style jsx global>{`* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #080808; color: #fff; font-family: 'DM Sans', sans-serif; }`}</style>
       <style jsx>{`
         .app { max-width: 480px; margin: 0 auto; min-height: 100vh; }
-
         .hero { height: 260px; position: relative; overflow: hidden; }
+        .hero-img { width: 100%; height: 100%; object-fit: cover; }
         .hero-gradient { position: absolute; inset: 0; background: radial-gradient(ellipse at 60% 40%, #3d1a4e 0%, #1a0a2e 50%, #080808 100%); }
         .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 50%, #080808 100%); }
-
         .profile { padding: 0 20px 20px; margin-top: -60px; position: relative; z-index: 2; }
-        .avatar { width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, #c850c0, #4158d0); border: 3px solid #080808; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; margin-bottom: 14px; }
+        .avatar { width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, #c850c0, #4158d0); border: 3px solid #080808; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; margin-bottom: 14px; overflow: hidden; }
         .name { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 6px; }
-        .bio { font-size: 14px; color: rgba(255,255,255,0.55); font-weight: 300; margin-bottom: 18px; }
+        .bio { font-size: 14px; color: rgba(255,255,255,0.55); font-weight: 300; margin-bottom: 18px; white-space: pre-line; }
         .profile-actions { display: flex; gap: 10px; }
         .btn-sub { flex: 1; padding: 13px; background: #fff; color: #080808; border: none; border-radius: 50px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; letter-spacing: 0.05em; }
-
         .posts-label { padding: 12px 20px; font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; border-top: 0.5px solid rgba(255,255,255,0.08); }
-
         .loading { display: flex; justify-content: center; padding: 60px; }
         .spinner { width: 28px; height: 28px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
         .empty { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); font-size: 14px; }
-
         .post { margin-bottom: 1px; }
         .post-header { display: flex; align-items: center; gap: 10px; padding: 10px 16px; }
-        .post-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #c850c0, #4158d0); display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 600; flex-shrink: 0; }
+        .post-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #c850c0, #4158d0); display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 600; flex-shrink: 0; overflow: hidden; }
         .post-username { font-size: 13px; font-weight: 500; }
-
         .carousel { position: relative; width: 100%; aspect-ratio: 4/5; background: #111; overflow: hidden; }
         .slides-container { position: relative; width: 100%; height: 100%; }
         .slide { position: absolute; inset: 0; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .slide img { width: 100%; height: 100%; object-fit: cover; }
         .slide img.blurred { filter: blur(24px); transform: scale(1.08); }
         .no-photo { display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(255,255,255,0.2); font-size: 13px; }
-
         .lock-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-        .btn-unlock { background: rgba(255,255,255,0.92); color: #080808; border: none; border-radius: 50px; padding: 12px 22px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; backdrop-filter: blur(4px); }
-
-        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.85); border: none; cursor: pointer; font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center; color: #080808; z-index: 5; }
-        .prev { left: 10px; }
-        .next { right: 10px; }
-
+        .btn-unlock { background: rgba(255,255,255,0.92); color: #080808; border: none; border-radius: 50px; padding: 12px 22px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; }
+        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.85); border: none; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; color: #080808; z-index: 5; }
+        .prev { left: 10px; } .next { right: 10px; }
         .dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 5; }
         .dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.2s; }
         .dot.active { background: #fff; }
-
         .post-footer { padding: 10px 16px 16px; }
         .caption { font-size: 13px; color: rgba(255,255,255,0.55); font-weight: 300; }
-
         .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
         .modal { background: #141414; border-radius: 20px 20px 0 0; padding: 20px 20px 40px; width: 100%; max-width: 480px; }
         .modal-handle { width: 36px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; margin: 0 auto 20px; }
