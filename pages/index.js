@@ -2,58 +2,6 @@ import { useState, useEffect, useRef } from "react"
 import { supabase } from "../lib/supabase"
 import Head from "next/head"
 
-function useCountdown() {
-  const [seconds, setSeconds] = useState(900)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds(s => s <= 1 ? 900 : s - 1)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
-  const m = String(Math.floor(seconds / 60)).padStart(2, "0")
-  const s = String(seconds % 60).padStart(2, "0")
-  return m + ":" + s
-}
-
-function PromoBanner() {
-  const [minimized, setMinimized] = useState(false)
-  const timer = useCountdown()
-
-  if (minimized) {
-    return (
-      <div
-        onClick={() => setMinimized(false)}
-        style={{ position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg, #ff4e00, #ec9f05)", borderRadius: "30px", padding: "8px 16px", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", zIndex: 999, boxShadow: "0 4px 20px rgba(255,78,0,0.4)" }}
-      >
-        <span style={{ fontSize: "14px" }}>🔥</span>
-        <span style={{ color: "#fff", fontWeight: "600", fontSize: "14px", fontFamily: "monospace" }}>{timer}</span>
-      </div>
-    )
-  }
-
-  return (
-    <div style={{ position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)", width: "calc(100% - 32px)", maxWidth: "440px", background: "linear-gradient(135deg, #ff4e00, #ec9f05)", borderRadius: "16px", padding: "14px 16px", zIndex: 999, boxShadow: "0 4px 24px rgba(255,78,0,0.45)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "18px" }}>🔥</span>
-          <div>
-            <div style={{ color: "#fff", fontWeight: "700", fontSize: "14px", lineHeight: 1.2 }}>Offre flash — toutes les photos a 1€</div>
-            <div style={{ color: "rgba(255,255,255,0.85)", fontSize: "12px", marginTop: "2px" }}>
-              Se termine dans <span style={{ fontFamily: "monospace", fontWeight: "700", fontSize: "13px" }}>{timer}</span>
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={() => setMinimized(true)}
-          style={{ background: "rgba(255,255,255,0.25)", border: "none", borderRadius: "50%", width: "26px", height: "26px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff", fontSize: "14px", flexShrink: 0 }}
-        >
-          ✕
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export default function Home() {
   const [posts, setPosts] = useState([])
   const [profile, setProfile] = useState({ name: "Victoria Babolat", bio: "Welcome to my exclusive content 💋", avatar_url: null, banner_url: null })
@@ -195,13 +143,11 @@ export default function Home() {
             </div>
           </div>
         )}
-
-        <PromoBanner />
       </div>
 
       <style jsx global>{`* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #080808; color: #fff; font-family: sans-serif; }`}</style>
       <style jsx>{`
-        .app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px; }
+        .app { max-width: 480px; margin: 0 auto; min-height: 100vh; }
         .hero { height: 260px; position: relative; overflow: hidden; }
         .hero-img { width: 100%; height: 100%; object-fit: cover; }
         .hero-gradient { position: absolute; inset: 0; background: radial-gradient(ellipse at 60% 40%, #3d1a4e 0%, #1a0a2e 50%, #080808 100%); }
@@ -268,7 +214,7 @@ function Carousel({ photos, idx, isUnlocked, getUrl, onSlide, onUnlock, price })
             <img
               src={getUrl(photo.url)}
               alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover", filter: shouldBlur ? "blur(14px)" : "none", transform: shouldBlur ? "scale(1.05)" : "none" }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", filter: shouldBlur ? "blur(8px)" : "none", transform: shouldBlur ? "scale(1.03)" : "none" }}
             />
             {shouldBlur && (
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.15)" }}>
