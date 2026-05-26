@@ -675,7 +675,7 @@ function Carousel({ photos, idx, isUnlocked, getUrl, onSlide, onUnlock, price })
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                filter: shouldBlur ? "blur(22px)" : "none",
+                filter: shouldBlur ? "blur(24px)" : "none",
                 transform: shouldBlur ? "scale(1.05)" : "none",
               }}
             />
